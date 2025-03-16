@@ -1,0 +1,139 @@
+<div class="card" id="todoCard">
+    <p-toolbar styleClass="mb-6">
+        <ng-template #start>
+            <p-button label="New" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+            <p-button severity="danger" label="Delete" icon="pi pi-trash" outlined (onClick)="deleteSelectedTodos()"
+                [disabled]="!selectedTodos || !selectedTodos.length" />
+        </ng-template>
+
+        <ng-template #end>
+            <p-button label="Export" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+        </ng-template>
+    </p-toolbar>
+
+    <p-table #dt [value]="todos()" [rows]="rowsPerPage" [lazy]="true" [totalRecords]="totalRecords"
+        (onLazyLoad)="onPageChange($event)" [columns]="cols" [paginator]="true" [tableStyle]="{ 'min-width': '75rem' }"
+        [(selection)]="selectedTodos" [rowHover]="true" dataKey="id"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} todos" [showCurrentPageReport]="true"
+        [rowsPerPageOptions]="[10, 20, 30]">
+        <ng-template #caption>
+            <div class="flex items-center justify-between">
+                <h5 class="m-0">Manage Todos</h5>
+                <p-iconfield>
+                    <p-inputicon styleClass="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter($event)" placeholder="Search..." />
+                </p-iconfield>
+            </div>
+        </ng-template>
+        <ng-template #header>
+            <tr>
+                <th style="width: 3rem">
+                    <p-tableHeaderCheckbox />
+                </th>
+                <th style="min-width: 16rem">ID</th>
+                <th pSortableColumn="task" style="min-width:16rem">
+                    Task
+                    <p-sortIcon field="task" />
+                </th>
+                <th pSortableColumn="dueDate" style="min-width:16rem">
+                    Due Date
+                    <p-sortIcon field="dueDate" />
+                </th>
+                <th pSortableColumn="completed" style="min-width:16rem">
+                    Completed
+                    <p-sortIcon field="completed" />
+                </th>
+                <th style="min-width: 12rem"></th>
+            </tr>
+        </ng-template>
+        <ng-template #body let-todo>
+            <tr>
+                <td style="width: 3rem">
+                    <p-tableCheckbox [value]="todo" />
+                </td>
+                <td style="min-width: 12rem">{{ todo.id }}</td>
+                <td style="min-width: 16rem">{{ todo.task }}</td>
+                <td style="min-width: 16rem">{{ todo.dueDate | date: 'yy-MM-dd | HH:mm' }}</td>
+                <td style="min-width: 16rem">
+                    <p-toggleswitch [(ngModel)]="todo.completed" (onChange)="toggleCompleted(todo)"
+                        [disabled]="isSaving">
+                        <ng-template #handle let-checked="todo.completed">
+                            <i [ngClass]="['!text-xs', 'pi', todo.completed ? 'pi-check' : 'pi-times']"></i>
+                        </ng-template>
+                    </p-toggleswitch>
+                </td>
+                <td>
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true"
+                        (click)="editTodo(todo)" />
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true"
+                        (click)="deleteTodo(todo)" />
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+
+    <p-dialog [(visible)]="todoDialog" [position]="'top'" [style]="{ width: '450px' }" header="Add A Task"
+        [modal]="true">
+        <ng-template #content>
+            <form class="flex flex-col gap-6" [formGroup]="todoForm">
+                <div>
+                    <label for="name" class="block font-bold mb-3">Task</label>
+                    <input type="text" pInputText id="name" formControlName="task" placeholder="Task" required fluid />
+                    @if (todoForm.get('task')?.invalid && (todoForm.get('task')?.touched ||
+                    todoForm.get('task')?.dirty)) {
+                    <p-message severity="error" variant="simple" size="small">
+                        @if (todoForm.get('task')?.errors?.['required']) {Task is required.}
+                    </p-message>
+                    }
+                </div>
+                <div>
+                    <label for="description" class="block font-bold mb-3">Description</label>
+                    <textarea id="description" pTextarea formControlName="description" placeholder="Description"
+                        required rows="3" cols="20" fluid></textarea>
+                    @if (todoForm.get('description')?.invalid && (todoForm.get('description')?.touched ||
+                    todoForm.get('description')?.dirty)) {
+                    <p-message severity="error" variant="simple" size="small">
+                        @if (todoForm.get('description')?.errors?.['required']) {Description is required.}
+                        @if (todoForm.get('description')?.errors?.['minlength']) {Description must be at least 5
+                        characters long.}
+                    </p-message>
+                    }
+                </div>
+                <div>
+                    <label for="dueDate" class="block font-bold mb-3">Due Date</label>
+                    <p-datepicker inputId="calendar-24h" formControlName="dueDate" [iconDisplay]="'input'"
+                        [showIcon]="true" [showTime]="true" [hourFormat]="'24'" [placeholder]="'Due Date'" fluid
+                        appendTo="body" />
+                    @if (todoForm.get('dueDate')?.invalid && (todoForm.get('dueDate')?.touched ||
+                    todoForm.get('dueDate')?.dirty)) {
+                    <p-message severity="error" variant="simple" size="small">
+                        @if (todoForm.get('dueDate')?.errors?.['required']) {Due date is required.}
+                        @if (todoForm.get('dueDate')?.errors?.['dateInvalid']) {Invalid date format.}
+                    </p-message>
+                    }
+                </div>
+                <div>
+                    <label for="completed" class="block font-bold mb-3">Completed</label>
+                    <p-toggleswitch formControlName="completed">
+                        <ng-template #handle let-checked="completed">
+                            <!-- <i [ngClass]="['!text-xs', 'pi', todo.completed ? 'pi-check' : 'pi-times']"></i> -->
+                        </ng-template>
+                    </p-toggleswitch>
+                </div>
+            </form>
+        </ng-template>
+
+        <ng-template #footer>
+            <p-button label="Cancel" icon="pi pi-times" text (click)="hideDialog()" [disabled]="isSaving" />
+            <span>
+                @if (!isSaving) {
+                <p-button [disabled]="isSaving || todoForm.invalid" label="Save" icon="pi pi-check"
+                    (click)="saveTodo()" />
+                } @else {
+                <p-progress-spinner strokeWidth="8" [style]="{ width: '25px', height: '25px' }" />
+                }
+            </span>
+        </ng-template>
+    </p-dialog>
+    <p-toast position="bottom-right" />
+    <p-confirmdialog [style]="{ width: '450px' }" />
