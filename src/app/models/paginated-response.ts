@@ -1,7 +1,5 @@
 export interface PaginatedResponse<T> {
-  _embedded: {
-    todos: T[]; // Match the Spring HAL format
-  };
+  data: T[];
   page: {
     size: number;
     totalElements: number;

@@ -49,9 +49,4 @@ export class TodoService {
   deleteTodo(id: number): Observable<Todo> {
     return this.httpclient.delete<Todo>(`${this.apiUrl}/${id}`);
   }
-
-  private extractIdFromUrl(url: string): number {
-    const parts = url.split('/');
-    return parseInt(parts[parts.length - 1], 10);
-  }
 }

@@ -71,11 +71,16 @@ export class TestComponent {
   loadTodos() {
     this.todoService.getTodos(this.currentPage, this.rowsPerPage, this.filterTerm(), this.sortField(), this.sortOrder()).subscribe({
       next: (response) => {
-        this.todos.set(response._embedded.todos); // Direct access to HAL structure
+        this.todos.set(response.data);
         this.totalRecords = response.page.totalElements;
       },
       error: (error) => {
-        console.log(error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: `Failed to load todos: ${error.message}`,
+          life: 3000
+        })
       }
     });
   }
